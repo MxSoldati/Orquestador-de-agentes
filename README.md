@@ -1,41 +1,40 @@
-# Orquestador istribuido de Agentes en Tiempo Real
-
+# 🚀 Orquestador Distribuido de Agentes en Tiempo Real (`A2A-TCP`)
 **Trabajo Final Integrador - Computación II**  
-**Caso de Aplicación Real:** Sistema de Gestión, Scoring y Seguimiento de Leads (*Nino Aventuras*)
+**Autor:** Máximo Soldati  
+**Estado actual:** Fase 1 - Definición de Arquitectura y Protocolo (En revisión docente)
 
 ---
 
-## 📌 Introducción y Propósito
-Este proyecto implementa una arquitectura **Cliente-Servidor distribuida y asincrónica** diseñada para coordinar múltiples agentes de software especializados. 
+## 📌 Introducción
+Este proyecto consiste en un **Servidor Orquestador Distribuido (Hub)** de propósito general y altamente escalable, diseñado bajo arquitectura Cliente-Servidor para coordinar múltiples agentes de software autónomos.
 
-Su objetivo es resolver dos problemas críticos en el procesamiento de información en vivo (aplicado a la recepción de consultas comerciales desde Meta CRM para *Nino Aventuras*):
-1. **Comunicación instantánea sin bloqueos:** Permitir que distintos nodos agentes (Ingestores, Analizadores, Notificadores y Operadores) intercambien eventos y alertas al instante a través de un **Servidor Orquestador Central (Hub)**.
-2. **Delegación de tareas pesadas:** Desacoplar las tareas costosas (análisis de historial de conversación, cálculo de *Lead Scoring*, cruce de promociones y generación de agendas diarias de contacto) enviándolas a una **cola de tareas distribuidas**, evitando congelar el ciclo de atención del servidor.
+El sistema resuelve dos desafíos críticos en entornos multi-agente:
+1. **Comunicación instantánea de baja latencia:** Los nodos agentes mantienen conexiones persistentes vía **Sockets `SOCK_STREAM` (TCP)** gestionadas con **asincronismo de I/O (`asyncio`)**, permitiendo el enrutamiento de eventos y alertas en tiempo real sin bloquear el servidor.
+2. **Delegación y escalabilidad horizontal de tareas pesadas:** Cuando un agente delega una tarea de cómputo intensivo o de consulta externa a otro rol, el Orquestador desacopla su ejecución enviándola a un **Pool Distribuido de Workers (`Celery` + `Redis`)**, permitiendo escalar la cantidad de nodos procesadores a demanda sin afectar el ciclo pregunta-respuesta del socket.
 
----
-
-## 🛠️ Herramientas y Conceptos de Computación II Aplicados
-
-El diseño integra de forma práctica los ejes centrales de la materia:
-
-* **Sockets Concurrentes (`SOCK_STREAM` / TCP):** Conexión confiable de múltiples nodos agentes simultáneos hacia el Servidor Orquestador.
-* **Asincronismo de I/O (`asyncio`):** Manejo cooperativo de corrutinas (`async`/`await`) en el servidor central para enrutar mensajes entre decenas de agentes sin bloqueos por espera de red ni condiciones de carrera (*race conditions*).
-* **Mecanismos de IPC Local (`os.fork`, `os.pipe`, `FIFO`, `signal`):** Creación de un proceso hijo supervisor encargado de recolectar telemetría y auditar el tráfico del servidor mediante tuberías en memoria y archivos FIFO en disco, con manejo limpio de señales (`SIGINT`/`SIGTERM` y `waitpid`) para evitar procesos zombies.
-* **Cola de Tareas Distribuidas (`Celery` + `Redis`):** Uso de Redis como *broker* de mensajes y *backend* de resultados para que un pool de workers procese en paralelo el análisis de clientes y el armado de reportes diarios.
-* **Argumentos por Línea de Comandos (`argparse`):** Configuración dinámica de hosts, puertos, roles de cada agente y comandos operativos desde la terminal.
+### 🎯 Caso de Uso Aplicado (Plugin de Negocio: *Nino Aventuras*)
+Sobre el motor agéntico escalable se monta un pipeline real de gestión comercial:
+* **Agente Ingestor:** Captura prospectos entrantes desde canales externos (Meta CRM).
+* **Agente Analizador / Scorer:** Analiza el historial de preguntas/respuestas, registra promociones ofrecidas y calcula un puntaje de prioridad (*Lead Scoring*).
+* **Agente Notificador / Operador:** Recibe alertas instantáneas de clientes prioritarios y genera la agenda diaria de seguimiento.
 
 ---
 
-## 📂 Estructura del Proyecto
+## 🛠️ Stack de Herramientas de Computación II
 
-* `doc/`: Documentación conceptual previa al desarrollo (Descripción verbal, diagrama de arquitectura y detalle de entidades).
-* `README.md`: Introducción general y guía de uso de la aplicación.
-* `INSTALL.md`: Instrucciones para preparar el entorno y desplegar los servicios.
-* `INFO.md`: Justificación teórica de las decisiones de arquitectura, concurrencia e IPC.
-* `TODO.md`: Hoja de ruta del desarrollo incremental y mejoras futuras.
+| Requisito de la Cátedra | Implementación en el Proyecto |
+| :--- | :--- |
+| **Sockets Concurrentes** | Sockets `AF_INET` / `SOCK_STREAM` (TCP) con soporte multi-cliente simultáneo. |
+| **Protocolo de Aplicación** | **`A2A-TCP`**: Framing binario de 4 bytes (prefijo de longitud) + Payload **JSON-RPC 2.0** inspirado en el estándar *Agent-to-Agent (A2A)*. |
+| **Asincronismo de I/O** | Event loop cooperativo con **`asyncio`** (`async/await`, `create_task`) evitando bloqueos por GIL y *race conditions*. |
+| **Mecanismos de IPC y Señales** | Proceso hijo auditor creado con **`os.fork()`**, comunicado por **`os.pipe()`** (Productor-Consumidor), exposición en disco vía **`FIFO` (named pipe)** y apagado limpio con **`signal.signal()`** + **`os.waitpid()`** (sin procesos zombies). |
+| **Cola de Tareas Distribuidas** | **`Celery`** con **`Redis`** como *Broker* de mensajes y *Backend* de resultados. |
+| **Argumentos por CLI** | Configuración dinámica de roles, puertos, IPs y acciones mediante **`argparse`**. |
+| **Escalabilidad y Despliegue** | Contenedores **`Docker`** (`docker-compose.yml`) y persistencia en base de datos relacional (**SQLite / PostgreSQL**). |
 
+---
 
-
-
-<img src="https://user-images.githubusercontent.com/74038190/212746035-d5c61762-973c-44c0-aec7-887f3b7690e3.git"width="500">
-<br><br>
+## 📂 Documentación del Proyecto (`final/doc/`)
+* [Especificación de Arquitectura y Entidades](./final/doc/arquitectura.md)
+* [Especificación del Protocolo A2A-TCP](./final/doc/protocolo_a2a.md)
+* [Hoja de Ruta y Mejoras Futuras (TODO)](./final/TODO.md)
