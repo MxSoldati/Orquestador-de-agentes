@@ -9,7 +9,7 @@
 Este proyecto consiste en un **Servidor Orquestador Distribuido (Hub)** de propósito general y altamente escalable, diseñado bajo arquitectura Cliente-Servidor para coordinar múltiples agentes de software autónomos.
 
 El sistema resuelve dos desafíos críticos en entornos multi-agente:
-1. **Comunicación instantánea de baja latencia:** Los nodos agentes mantienen conexiones persistentes vía **Sockets `SOCK_STREAM` (TCP)** gestionadas con **asincronismo de I/O (`asyncio`)**, permitiendo el enrutamiento de eventos y alertas en tiempo real sin bloquear el servidor.
+1. **La comunicacion:** Los nodos agentes mantienen conexiones persistentes vía **Sockets `SOCK_STREAM` (TCP)** gestionadas con **asincronismo de I/O (`asyncio`)**, permitiendo el enrutamiento de eventos y alertas en tiempo real sin bloquear el servidor.
 2. **Delegación y escalabilidad horizontal de tareas pesadas:** Cuando un agente delega una tarea de cómputo intensivo o de consulta externa a otro rol, el Orquestador desacopla su ejecución enviándola a un **Pool Distribuido de Workers (`Celery` + `Redis`)**, permitiendo escalar la cantidad de nodos procesadores a demanda sin afectar el ciclo pregunta-respuesta del socket.
 
 ### 🎯 Caso de Uso Aplicado (Plugin de Negocio: *Nino Aventuras*)
